@@ -1,0 +1,323 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CANDIDATE
+  PROCTOR
+  REVIEWER
+  GRADER
+  TEST_CENTER_STAFF
+  ADMIN
+  PROGRAM_SPONSOR
+}
+
+enum DataRegion {
+  EU_CENTRAL_1
+  AP_SOUTH_1
+}
+
+enum ExamPathway {
+  PHYSICAL_CENTER
+  REMOTE_PROCTORED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum QuestionType {
+  MCQ
+  FIGURE
+  FREE_TEXT
+}
+
+enum ExamSessionStatus {
+  SCHEDULED
+  SYSTEM_CHECK_PENDING
+  CHECK_IN
+  IN_PROGRESS
+  SUBMITTED
+  PROCTORING_REVIEW
+  GRADING
+  ADJUDICATION
+  CERTIFIED
+  INVALIDATED
+}
+
+enum ProctoringFlagSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ProctoringFlagStatus {
+  OPEN
+  CONFIRMED
+  DISMISSED
+  ESCALATED
+}
+
+enum SystemCheckStatus {
+  PENDING
+  PASSED
+  FAILED
+}
+
+enum AppealStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  role         UserRole
+  dataRegion   DataRegion @default(EU_CENTRAL_1)
+  locale       String     @default("en")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  candidateProfile CandidateProfile?
+  auditLogs        AuditLog[]
+  gradingScores    GradingScore[]
+
+  @@map("users")
+}
+
+model CandidateProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id])
+  firstName             String
+  lastName              String
+  countryCode           String
+  registrationCountry   String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  examBookings ExamBooking[]
+  systemChecks SystemCheck[]
+
+  @@map("candidate_profiles")
+}
+
+model SubjectModule {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  examBookings ExamBooking[]
+  questions    Question[]
+
+  @@map("subject_modules")
+}
+
+model TestCenter {
+  id          String   @id @default(cuid())
+  name        String
+  city        String
+  countryCode String
+  room        String?
+  createdAt   DateTime @default(now())
+
+  examBookings ExamBooking[]
+
+  @@map("test_centers")
+}
+
+model ExamBooking {
+  id              String           @id @default(cuid())
+  candidateId     String
+  candidate       CandidateProfile @relation(fields: [candidateId], references: [id])
+  subjectModuleId String
+  subjectModule   SubjectModule    @relation(fields: [subjectModuleId], references: [id])
+  pathway         ExamPathway
+  scheduledAt     DateTime
+  status          BookingStatus    @default(PENDING)
+  testCenterId    String?
+  testCenter      TestCenter?      @relation(fields: [testCenterId], references: [id])
+  seatLabel       String?
+  checkedInAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  examSession ExamSession?
+  systemCheck SystemCheck?
+
+  @@map("exam_bookings")
+}
+
+model SystemCheck {
+  id            String            @id @default(cuid())
+  candidateId   String
+  candidate     CandidateProfile  @relation(fields: [candidateId], references: [id])
+  bookingId     String            @unique
+  booking       ExamBooking       @relation(fields: [bookingId], references: [id])
+  status        SystemCheckStatus @default(PENDING)
+  checks        Json
+  consentAt     DateTime?
+  idDocumentUrl String?
+  submittedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@map("system_checks")
+}
+
+model Question {
+  id              String        @id @default(cuid())
+  subjectModuleId String
+  subjectModule   SubjectModule @relation(fields: [subjectModuleId], references: [id])
+  type            QuestionType
+  stem            String
+  content         Json
+  correctAnswer   Json?
+  rubric          Json?
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+
+  sessionQuestions ExamSessionQuestion[]
+
+  @@map("questions")
+}
+
+model ExamSession {
+  id              String            @id @default(cuid())
+  bookingId       String            @unique
+  booking         ExamBooking       @relation(fields: [bookingId], references: [id])
+  status          ExamSessionStatus @default(SCHEDULED)
+  startedAt       DateTime?
+  endedAt         DateTime?
+  durationMinutes Int               @default(180)
+  timeRemainingSec Int?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  questions       ExamSessionQuestion[]
+  responses       ExamResponse[]
+  proctoringFlags ProctoringFlag[]
+  gradingScores   GradingScore[]
+  certificate     Certificate?
+  appeals         Appeal[]
+
+  @@map("exam_sessions")
+}
+
+model ExamSessionQuestion {
+  sessionId  String
+  session    ExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question    @relation(fields: [questionId], references: [id])
+  sortOrder  Int
+  flagged    Boolean     @default(false)
+
+  @@id([sessionId, questionId])
+  @@map("exam_session_questions")
+}
+
+model ExamResponse {
+  id            String       @id @default(cuid())
+  sessionId     String
+  session       ExamSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId    String
+  questionType  QuestionType
+  answerPayload Json
+  isCorrect     Boolean?
+  autoScore     Float?
+  savedAt       DateTime     @default(now())
+
+  @@unique([sessionId, questionId])
+  @@map("exam_responses")
+}
+
+model ProctoringFlag {
+  id          String                 @id @default(cuid())
+  sessionId   String
+  session     ExamSession            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  severity    ProctoringFlagSeverity
+  status      ProctoringFlagStatus   @default(OPEN)
+  flagType    String
+  description String
+  timestampMs Int                    @default(0)
+  clipUrl     String?
+  aiConfidence Float?
+  reviewerId  String?
+  rationale   String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@map("proctoring_flags")
+}
+
+model GradingScore {
+  id          String      @id @default(cuid())
+  sessionId   String
+  session     ExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId  String
+  graderId    String
+  grader      User        @relation(fields: [graderId], references: [id])
+  criteriaScores Json
+  totalScore  Float
+  notes       String?
+  createdAt   DateTime    @default(now())
+
+  @@unique([sessionId, questionId, graderId])
+  @@map("grading_scores")
+}
+
+model Certificate {
+  id              String      @id @default(cuid())
+  sessionId       String      @unique
+  session         ExamSession @relation(fields: [sessionId], references: [id])
+  candidateId     String
+  scaledScore     Float
+  percentileRank  Float
+  moduleBreakdown Json
+  pdfUrl          String?
+  issuedAt        DateTime    @default(now())
+
+  @@map("certificates")
+}
+
+model Appeal {
+  id         String       @id @default(cuid())
+  sessionId  String
+  session    ExamSession  @relation(fields: [sessionId], references: [id])
+  candidateId String
+  reason     String
+  status     AppealStatus @default(OPEN)
+  resolution String?
+  resolvedAt DateTime?
+  createdAt  DateTime     @default(now())
+
+  @@map("appeals")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}

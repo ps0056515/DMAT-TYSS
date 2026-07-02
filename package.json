@@ -1,0 +1,31 @@
+{
+  "name": "dmat-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Digital Assessment Platform with in-house exam delivery and proctoring",
+  "scripts": {
+    "build": "pnpm build:packages && pnpm build:apps",
+    "build:packages": "pnpm --filter @dmat/types build && pnpm --filter @dmat/auth build && pnpm --filter @dmat/ui build && pnpm --filter @dmat/database build",
+    "build:apps": "pnpm --filter @dmat/api build && pnpm --filter @dmat/web-public build && pnpm --filter @dmat/web-candidate build && pnpm --filter @dmat/exam-player build && pnpm --filter @dmat/proctor-console build && pnpm --filter @dmat/test-center build && pnpm --filter @dmat/admin build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @dmat/database generate",
+    "db:push": "pnpm --filter @dmat/database push",
+    "db:migrate": "pnpm --filter @dmat/database migrate",
+    "db:studio": "pnpm --filter @dmat/database studio",
+    "db:seed": "pnpm --filter @dmat/database seed",
+    "setup": "pnpm db:generate && pnpm db:push && pnpm db:seed",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -141,3 +141,15 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Environment
+.env
+.env.local
+
+# Turbo
+.turbo
+
+# Prisma / SQLite
+packages/database/prisma/dev.db
+packages/database/prisma/dev.db-journal
+packages/database/prisma/migrations/**/migration_lock.toml

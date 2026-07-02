@@ -1,0 +1,19 @@
+{
+  "name": "@dmat/auth",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"lint: auth ok\""
+  },
+  "dependencies": {
+    "@dmat/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@dmat/config": "workspace:*",
+    "typescript": "^5.8.3"
+  }
+}

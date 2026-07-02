@@ -1,0 +1,26 @@
+{
+  "name": "@dmat/web-public",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3100",
+    "build": "next build",
+    "start": "next start --port 3100",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"lint: web-public ok\""
+  },
+  "dependencies": {
+    "@dmat/types": "workspace:*",
+    "@dmat/ui": "workspace:*",
+    "next": "^15.3.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@dmat/config": "workspace:*",
+    "@types/node": "^22.15.30",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "typescript": "^5.8.3"
+  }
+}
